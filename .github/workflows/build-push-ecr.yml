@@ -1,0 +1,81 @@
+name: Build and Push Image to ECR (from JSON)
+
+on:
+  push:
+    paths:
+      - "config/**/*.json"
+      - "lambda/**"
+      - ".github/workflows/build-push-ecr.yml"
+
+jobs:
+  build_and_push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (Access Keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Extract repo name from JSON
+        id: json
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+          JSON_FILE="config/scraper.json"
+          RAW_NAME="$(jq -r '.name' "$JSON_FILE")"
+
+          if [ -z "$RAW_NAME" ] || [ "$RAW_NAME" = "null" ]; then
+            echo "ERROR: .name no existe o es null en $JSON_FILE"
+            exit 1
+          fi
+
+          # Sanitizar para ECR: lowercase + reemplazar espacios por '-' + quitar chars inválidos
+          SAFE_NAME="$(echo "$RAW_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | sed 's/[^a-z0-9._\/-]//g')"
+
+          # (Opcional) prefijo para ordenar repos
+          ECR_REPO="scrapers/${SAFE_NAME}"
+
+          echo "raw_name=$RAW_NAME" >> $GITHUB_OUTPUT
+          echo "safe_name=$SAFE_NAME" >> $GITHUB_OUTPUT
+          echo "ecr_repo=$ECR_REPO" >> $GITHUB_OUTPUT
+
+      - name: Ensure ECR repository exists
+        run: |
+          ECR_REPO="${{ steps.json.outputs.ecr_repo }}"
+          aws ecr describe-repositories --repository-names "$ECR_REPO" >/dev/null 2>&1 || \
+            aws ecr create-repository --repository-name "$ECR_REPO" >/dev/null
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push image
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ECR_REPO: ${{ steps.json.outputs.ecr_repo }}
+        run: |
+          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+          TAG="${GITHUB_SHA}"
+
+          echo "Building image: ${IMAGE_URI}:${TAG}"
+
+          docker build -t "${IMAGE_URI}:${TAG}" -t "${IMAGE_URI}:latest" ./lambda
+          docker push "${IMAGE_URI}:${TAG}"
+          docker push "${IMAGE_URI}:latest"
+
+      - name: Output published image
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          ECR_REPO: ${{ steps.json.outputs.ecr_repo }}
+        run: |
+          echo "Pushed:"
+          echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${GITHUB_SHA}"
+          echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest"
