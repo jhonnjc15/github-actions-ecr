@@ -22,10 +22,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
           
-      - name: Debug AWS identity
+      - name: Debug AWS
         run: |
           aws sts get-caller-identity
-          aws configure get region
+          aws configure list || true
+          aws configure get region || true
 
       - name: Extract repo name from JSON
         id: json
