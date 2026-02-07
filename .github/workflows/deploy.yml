@@ -52,7 +52,7 @@ jobs:
       - name: Parse scraper config
         id: config
         run: |
-          python scripts/parse_config.py config/scraper.json  >> "$GITHUB_OUTPUT"
+          python scripts/parse_config.py config/scraper.json >> "$GITHUB_OUTPUT"
 
       - name: Ensure ECR repository exists
         run: |
