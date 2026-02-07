@@ -16,6 +16,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Configure AWS credentials (Access Keys)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -23,18 +28,11 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Debug AWS
-        run: |
-          aws sts get-caller-identity
-          aws configure list || true
-          aws configure get region || true
-
-      # Sin jq / sin apt-get: usa Python para leer JSON y producir outputs
       - name: Parse scraper config (Python)
         id: config
         shell: bash
         run: |
-          python scripts/parse_config.py config/scraper.json >> $GITHUB_OUTPUT
+          python scripts/parse_config.py config/scraper.json >> "$GITHUB_OUTPUT"
 
       - name: Ensure ECR repository exists
         shell: bash
@@ -46,29 +44,20 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build and push image
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REPO: ${{ steps.config.outputs.ecr_repo }}
-        shell: bash
-        run: |
-          IMAGE_URI="${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
-          TAG="${GITHUB_SHA}"
-
-          echo "Building image: ${IMAGE_URI}:${TAG}"
-
-          docker build -t "${IMAGE_URI}:${TAG}" -t "${IMAGE_URI}:latest" ./lambda
-          docker push "${IMAGE_URI}:${TAG}"
-          docker push "${IMAGE_URI}:latest"
+      - name: Build and push image (Docker Action)
+        uses: docker/build-push-action@v6
+        with:
+          context: ./lambda
+          push: true
+          tags: |
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:${{ github.sha }}
+            ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Output published image
-        env:
-          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          ECR_REPO: ${{ steps.config.outputs.ecr_repo }}
         shell: bash
         run: |
           echo "Pushed:"
-          echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${GITHUB_SHA}"
-          echo "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:latest"
+          echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:${{ github.sha }}"
+          echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:latest"
