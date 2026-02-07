@@ -28,6 +28,7 @@ jobs:
               - 'lambda/**'
               - 'config/**/*.json'
               - 'scripts/**'
+              - 'infra/**'
             infra:
               - 'infra/**'
               - '.github/workflows/deploy.yml'
@@ -75,7 +76,7 @@ jobs:
 
   terraform_apply:
     runs-on: ubuntu-latest
-    needs: [changes, build_and_push]
+    needs: changes
     # Se ejecuta si cambió infra. Si también hubo build, espera; si no hubo build, igual corre.
     if: ${{ needs.changes.outputs.infra == 'true' }}
     steps:
