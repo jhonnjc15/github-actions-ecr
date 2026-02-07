@@ -54,10 +54,4 @@ jobs:
           tags: |
             ${{ env.IMAGE_URI }}:${{ github.sha }}
             ${{ env.IMAGE_URI }}:latest
-            
-      - name: Output published image
-        shell: bash
-        run: |
-          echo "Pushed:"
-          echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:${{ github.sha }}"
-          echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:latest"
+
