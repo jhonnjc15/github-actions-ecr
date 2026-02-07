@@ -1,4 +1,4 @@
-name: Build and Push Image to ECR (from JSON)
+name: Build and Deploy Lambda Image (Option 1)
 
 on:
   push:
@@ -9,8 +9,13 @@ on:
       - ".github/workflows/build-push-ecr.yml"
 
 jobs:
-  build_and_push:
+  build_and_deploy:
     runs-on: ubuntu-latest
+
+    # Evita que 2 pushes desplieguen a la vez
+    concurrency:
+      group: deploy-${{ github.ref }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout
@@ -32,11 +37,14 @@ jobs:
         id: config
         shell: bash
         run: |
+          set -euo pipefail
           python scripts/parse_config.py config/scraper.json >> "$GITHUB_OUTPUT"
 
+      # (Opcional) si ya lo crea Terraform, puedes eliminar este step y quitar CreateRepository del IAM deploy
       - name: Ensure ECR repository exists
         shell: bash
         run: |
+          set -euo pipefail
           ECR_REPO="${{ steps.config.outputs.ecr_repo }}"
           aws ecr describe-repositories --repository-names "$ECR_REPO" >/dev/null 2>&1 || \
             aws ecr create-repository --repository-name "$ECR_REPO" >/dev/null
@@ -47,11 +55,44 @@ jobs:
       - name: Build and push image (Docker Action)
         uses: docker/build-push-action@v6
         env:
-          IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}
+          IMAGE_REPO_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}
         with:
           context: ./lambda
           push: true
           tags: |
-            ${{ env.IMAGE_URI }}:${{ github.sha }}
-            ${{ env.IMAGE_URI }}:latest
+            ${{ env.IMAGE_REPO_URI }}:${{ github.sha }}
+            ${{ env.IMAGE_REPO_URI }}:latest
 
+      - name: Update Lambda to new image tag (sha)
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAMBDA_NAME="${{ steps.config.outputs.lambda_name }}"
+          IMAGE_URI="${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:${{ github.sha }}"
+          if aws lambda get-function --function-name "${LAMBDA_NAME}" >/dev/null 2>&1; then
+            echo "Updating Lambda '${LAMBDA_NAME}' to image: ${IMAGE_URI}"
+            aws lambda update-function-code \
+              --function-name "${LAMBDA_NAME}" \
+              --image-uri "${IMAGE_URI}"
+          else
+            echo "⚠️ Lambda '${LAMBDA_NAME}' does not exist yet. Skipping update."
+            echo "   Run Terraform (infra) first to create Lambda/Step Function/Schedule."
+            echo "SKIP_LAMBDA_UPDATE=true" >> "$GITHUB_ENV"
+          fi
+
+      - name: Wait until Lambda is updated
+        if: env.SKIP_LAMBDA_UPDATE != 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAMBDA_NAME="${{ steps.config.outputs.lambda_name }}"
+          echo "Waiting for Lambda '${LAMBDA_NAME}' to finish updating..."
+          aws lambda wait function-updated --function-name "${LAMBDA_NAME}"
+
+      - name: Print deployed info
+        shell: bash
+        run: |
+          echo "✅ Deploy completed"
+          echo "ECR repo: ${{ steps.config.outputs.ecr_repo }}"
+          echo "Lambda:   ${{ steps.config.outputs.lambda_name }}"
+          echo "Tag:      ${{ github.sha }}"

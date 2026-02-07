@@ -1,5 +1,6 @@
 {
-  "name": "prueba8",
+  "name": "prueba7",
   "env": "dev",
-  "description": "toy scraper"
+  "description": "scraper de prueba",
+  "schedule_expression": "rate(15 minutes)"
 }

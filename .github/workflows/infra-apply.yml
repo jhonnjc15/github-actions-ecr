@@ -1,0 +1,61 @@
+name: Terraform Apply (infra)
+
+on:
+  workflow_dispatch: {}
+  push:
+    paths:
+      - "infra/**"
+      - "config/**/*.json"
+      - "scripts/parse_config.py"
+      - ".github/workflows/infra-apply.yml"
+
+jobs:
+  terraform_apply:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: infra-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Parse scraper config
+        id: config
+        run: |
+          set -euo pipefail
+          python scripts/parse_config.py config/scraper.json >> "$GITHUB_OUTPUT"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.7.5"
+
+      - name: Configure AWS credentials (Terraform)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_TF }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_TF }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: infra
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: infra
+        run: |
+          terraform apply -auto-approve \
+            -var="aws_region=${{ secrets.AWS_REGION }}" \
+            -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
+            -var="ecr_repo=${{ steps.config.outputs.ecr_repo }}" \
+            -var="lambda_name=${{ steps.config.outputs.lambda_name }}" \
+            -var="state_machine_name=${{ steps.config.outputs.state_machine_name }}" \
+            -var="schedule_name=${{ steps.config.outputs.schedule_name }}" \
+            -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
+            -var="image_tag=latest"
