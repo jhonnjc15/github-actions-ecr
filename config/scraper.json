@@ -1,5 +1,5 @@
 {
-  "name": "prueba11",
+  "name": "prueba12",
   "env": "dev",
   "description": "scraper de prueba",
   "schedule_expression": "rate(15 minutes)"
