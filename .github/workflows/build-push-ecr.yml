@@ -52,8 +52,6 @@ jobs:
           tags: |
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:${{ github.sha }}
             ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Output published image
         shell: bash
