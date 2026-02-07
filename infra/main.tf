@@ -13,66 +13,22 @@ locals {
 ## If you want "infra-owned" ECR, add aws_ecr_repository + remove the workflow
 ## step that creates the repo.
 
-# -------------------------
-# IAM - Lambda Exec Role
-# -------------------------
-data "aws_iam_policy_document" "lambda_assume" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role" "lambda_exec" {
-  name               = "${var.lambda_name}-exec-role"
-  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
-}
-
-resource "aws_iam_role_policy_attachment" "lambda_basic" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-data "aws_iam_policy_document" "lambda_ecr_pull" {
-  statement {
-    actions = [
-      "ecr:BatchGetImage",
-      "ecr:GetDownloadUrlForLayer",
-      "ecr:BatchCheckLayerAvailability"
-    ]
-    resources = ["arn:aws:ecr:${var.aws_region}:${var.aws_account_id}:repository/${var.ecr_repo}"]
-  }
-
-  statement {
-    actions   = ["ecr:GetAuthorizationToken"]
-    resources = ["*"]
-  }
-}
-
-resource "aws_iam_role_policy" "lambda_ecr_pull" {
-  name   = "${var.lambda_name}-ecr-pull"
-  role   = aws_iam_role.lambda_exec.id
-  policy = data.aws_iam_policy_document.lambda_ecr_pull.json
-}
-
 resource "aws_ecr_repository_policy" "allow_lambda_pull" {
   repository = var.ecr_repo
 
   policy = jsonencode({
-    Version = "2012-10-17",
+    Version = "2012-10-17"
     Statement = [
       {
-        Sid    = "AllowLambdaServicePull",
-        Effect = "Allow",
+        Sid    = "AllowLambdaPull"
+        Effect = "Allow"
         Principal = {
-          Service = "lambda.amazonaws.com"
-        },
+          AWS = var.lambda_exec_role_arn
+        }
         Action = [
           "ecr:BatchGetImage",
-          "ecr:GetDownloadUrlForLayer"
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchCheckLayerAvailability"
         ]
       }
     ]
@@ -84,44 +40,12 @@ resource "aws_ecr_repository_policy" "allow_lambda_pull" {
 # -------------------------
 resource "aws_lambda_function" "fn" {
   function_name = var.lambda_name
-  role          = aws_iam_role.lambda_exec.arn
-
-  package_type = "Image"
-  image_uri    = local.image_uri
+  package_type  = "Image"
+  image_uri     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:${var.image_tag}"
+  role          = var.lambda_exec_role_arn
 
   timeout     = 900
   memory_size = 1024
-}
-
-# -------------------------
-# IAM - Step Functions Role
-# -------------------------
-data "aws_iam_policy_document" "sfn_assume" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["states.amazonaws.com"]
-    }
-  }
-}
-
-resource "aws_iam_role" "sfn_role" {
-  name               = "${var.state_machine_name}-role"
-  assume_role_policy = data.aws_iam_policy_document.sfn_assume.json
-}
-
-data "aws_iam_policy_document" "sfn_invoke_lambda" {
-  statement {
-    actions   = ["lambda:InvokeFunction"]
-    resources = [aws_lambda_function.fn.arn]
-  }
-}
-
-resource "aws_iam_role_policy" "sfn_policy" {
-  name   = "${var.state_machine_name}-invoke-lambda"
-  role   = aws_iam_role.sfn_role.id
-  policy = data.aws_iam_policy_document.sfn_invoke_lambda.json
 }
 
 # -------------------------
@@ -129,42 +53,18 @@ resource "aws_iam_role_policy" "sfn_policy" {
 # -------------------------
 resource "aws_sfn_state_machine" "sm" {
   name     = var.state_machine_name
-  role_arn = aws_iam_role.sfn_role.arn
-
-  definition = templatefile("${path.module}/templates/state_machine.asl.json.tpl", {
-    lambda_arn = aws_lambda_function.fn.arn
-  })
-}
-
-# -------------------------
-# IAM - Scheduler Role
-# -------------------------
-data "aws_iam_policy_document" "scheduler_assume" {
-  statement {
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["scheduler.amazonaws.com"]
+  role_arn = var.sfn_role_arn
+  definition = jsonencode({
+    Comment = "Scraper workflow"
+    StartAt = "RunLambda"
+    States = {
+      RunLambda = {
+        Type     = "Task"
+        Resource = aws_lambda_function.fn.arn
+        End      = true
+      }
     }
-  }
-}
-
-resource "aws_iam_role" "scheduler_role" {
-  name               = "${var.schedule_name}-role"
-  assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
-}
-
-data "aws_iam_policy_document" "scheduler_start_exec" {
-  statement {
-    actions   = ["states:StartExecution"]
-    resources = [aws_sfn_state_machine.sm.arn]
-  }
-}
-
-resource "aws_iam_role_policy" "scheduler_policy" {
-  name   = "${var.schedule_name}-start-exec"
-  role   = aws_iam_role.scheduler_role.id
-  policy = data.aws_iam_policy_document.scheduler_start_exec.json
+  })
 }
 
 # -------------------------
@@ -173,12 +73,13 @@ resource "aws_iam_role_policy" "scheduler_policy" {
 resource "aws_scheduler_schedule" "schedule" {
   name                = var.schedule_name
   schedule_expression = var.schedule_expression
+  state               = "ENABLED"
 
   flexible_time_window { mode = "OFF" }
 
   target {
     arn      = aws_sfn_state_machine.sm.arn
-    role_arn = aws_iam_role.scheduler_role.arn
+    role_arn = var.scheduler_role_arn
     input    = jsonencode({ source = "scheduler" })
   }
 }
