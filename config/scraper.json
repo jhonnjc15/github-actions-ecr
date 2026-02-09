@@ -2,5 +2,8 @@
   "name": "prueba20",
   "env": "dev",
   "description": "scraper de pruebaA",
-  "schedule_expression": "rate(15 minutes)"
+  "schedule_expression": "rate(15 minutes)",
+  "region": "us-east-1",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news",
+  "version": "v1.4.28"
 }
