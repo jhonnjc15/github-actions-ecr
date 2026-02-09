@@ -56,7 +56,7 @@ jobs:
 
       - name: Ensure ECR repository exists
         run: |
-          ECR_REPO="${{ steps.config.outputs.ecr_repo }}"
+          ECR_REPO="${{ steps.config.outputs.repository }}"
           aws ecr describe-repositories --repository-names "$ECR_REPO" >/dev/null 2>&1 || \
             aws ecr create-repository --repository-name "$ECR_REPO" >/dev/null
 
@@ -65,13 +65,12 @@ jobs:
       - name: Build and push image
         uses: docker/build-push-action@v6
         env:
-          IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.ecr_repo }}
+          IMAGE_REMOTE: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ steps.config.outputs.region }}.amazonaws.com/${{ steps.config.outputs.repository }}:${{ steps.config.outputs.version }}
         with:
           context: ./lambda
           push: true
           tags: |
-            ${{ env.IMAGE_URI }}:${{ github.sha }}
-            ${{ env.IMAGE_URI }}:latest
+            ${{ env.IMAGE_REMOTE }}
 
   terraform_apply:
     runs-on: ubuntu-latest
@@ -104,8 +103,8 @@ jobs:
       - name: Ensure image :latest exists
         run: |
           aws ecr describe-images \
-            --repository-name "${{ steps.config.outputs.ecr_repo }}" \
-            --image-ids imageTag=latest >/dev/null
+            --repository-name "${{ steps.config.outputs.repository }}" \
+            --image-ids imageTag="${{ steps.config.outputs.version }}" >/dev/null
 
       - name: Terraform init
         working-directory: infra
@@ -117,7 +116,7 @@ jobs:
           terraform apply -auto-approve \
             -var="aws_region=${{ secrets.AWS_REGION }}" \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
-            -var="ecr_repo=${{ steps.config.outputs.ecr_repo }}" \
+            -var="ecr_repo=${{ steps.config.outputs.repository }}" \
             -var="lambda_name=${{ steps.config.outputs.lambda_name }}" \
             -var="state_machine_name=${{ steps.config.outputs.state_machine_name }}" \
             -var="schedule_name=${{ steps.config.outputs.schedule_name }}" \
@@ -125,4 +124,4 @@ jobs:
             -var="lambda_exec_role_arn=${{ secrets.DEV_LAMBDA_EXEC_ROLE_ARN }}" \
             -var="sfn_role_arn=${{ secrets.DEV_SFN_ROLE_ARN }}" \
             -var="scheduler_role_arn=${{ secrets.DEV_SCHEDULER_ROLE_ARN }}" \
-            -var="image_tag=latest"
+            -var="image_tag=${{ steps.config.outputs.version }}"
