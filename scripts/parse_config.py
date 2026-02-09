@@ -31,6 +31,7 @@ def main() -> None:
     region = data.get("region")
     repository = data.get("repository")
     version = data.get("version")
+    execution = data.get("execution") or data.get("schedule_expression")
 
     if not name:
         print("ERROR: missing required field: name (or scraper_id)", file=sys.stderr)
@@ -47,6 +48,9 @@ def main() -> None:
     if not version:
         print("ERROR: missing required field: version", file=sys.stderr)
         sys.exit(1)
+    if not execution:
+        print("ERROR: missing required field: execution", file=sys.stderr)
+        sys.exit(1)
 
     safe_name = sanitize(name)
     safe_env = sanitize(env)
@@ -55,20 +59,29 @@ def main() -> None:
     default_ecr_repo = f"scrapers/{safe_env}/{safe_name}"
     default_lambda_name = f"scraper-{safe_env}-{safe_name}"
     default_sm_name = f"scraper-{safe_env}-{safe_name}-sm"
-    # Scheduler defaults (disabled for now)
-    # default_schedule_name = f"scraper-{safe_env}-{safe_name}-schedule"
-    # default_schedule_expression = "rate(15 minutes)"
+    default_schedule_name = f"scraper-{safe_env}-{safe_name}-schedule"
+    default_schedule_expression = "rate(15 minutes)"
 
     # Permitir override desde JSON
     ecr_repo = data.get("ecr_repo") or repository or default_ecr_repo
     lambda_name = data.get("lambda_name") or default_lambda_name
     state_machine_name = data.get("state_machine_name") or default_sm_name
-    # schedule_name = data.get("schedule_name") or default_schedule_name
-    # schedule_expression = data.get("schedule_expression") or default_schedule_expression
+    schedule_name = data.get("schedule_name") or default_schedule_name
+    schedule_expression = data.get("schedule_expression") or default_schedule_expression
+
+    if execution == "ejecutar_ahora":
+        execution_mode = "ejecutar_ahora"
+        schedule_expression = ""
+    else:
+        execution_mode = "scheduled"
+        schedule_expression = execution
 
     # Validaciones mínimas
     if not ecr_repo:
         print("ERROR: ecr_repo resolved empty", file=sys.stderr)
+        sys.exit(1)
+    if execution_mode == "scheduled" and not schedule_expression:
+        print("ERROR: schedule_expression resolved empty", file=sys.stderr)
         sys.exit(1)
 
     # Outputs para GitHub Actions ($GITHUB_OUTPUT)
@@ -80,12 +93,13 @@ def main() -> None:
     print(f"region={region}")
     print(f"repository={repository}")
     print(f"version={version}")
+    print(f"execution_mode={execution_mode}")
 
     print(f"ecr_repo={ecr_repo}")
     print(f"lambda_name={lambda_name}")
     print(f"state_machine_name={state_machine_name}")
-    # print(f"schedule_name={schedule_name}")
-    # print(f"schedule_expression={schedule_expression}")
+    print(f"schedule_name={schedule_name}")
+    print(f"schedule_expression={schedule_expression}")
 
 
 if __name__ == "__main__":

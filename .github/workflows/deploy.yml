@@ -151,8 +151,12 @@ jobs:
             -var="ecr_repo=${{ steps.config.outputs.repository }}" \
             -var="lambda_name=${{ steps.config.outputs.lambda_name }}" \
             -var="state_machine_name=${{ steps.config.outputs.state_machine_name }}" \
+            -var="schedule_name=${{ steps.config.outputs.schedule_name }}" \
+            -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
+            -var="execution_mode=${{ steps.config.outputs.execution_mode }}" \
             -var="lambda_exec_role_arn=${{ secrets.DEV_LAMBDA_EXEC_ROLE_ARN }}" \
             -var="sfn_role_arn=${{ secrets.DEV_SFN_ROLE_ARN }}" \
+            -var="scheduler_role_arn=${{ secrets.DEV_SCHEDULER_ROLE_ARN }}" \
             -var="image_tag=${{ steps.config.outputs.version }}"
 
   run_step_function:
@@ -194,6 +198,10 @@ jobs:
 
       - name: Trigger Step Function execution
         run: |
+          if [ "${{ steps.config.outputs.execution_mode }}" != "ejecutar_ahora" ]; then
+            echo "Execution mode is scheduled; skipping manual execution."
+            exit 0
+          fi
           SM_ARN=$(aws stepfunctions list-state-machines \
             --query "stateMachines[?name=='${{ steps.config.outputs.state_machine_name }}'].stateMachineArn | [0]" \
             --output text)
