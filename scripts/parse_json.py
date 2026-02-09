@@ -5,7 +5,7 @@ data = json.loads(Path(sys.argv[1]).read_text())
 
 for field in ("name", "env"):
     if field not in data:
-        sys.exit(f"Missing required field: {field}")
+        sys.exit(f"Missing required  field: {field}")
 
 print(f"name={data['name']}")
 print(f"env={data['env']}")
