@@ -28,12 +28,24 @@ def main() -> None:
     name = data.get("name") or data.get("scraper_id")  # acepta ambos
     env = data.get("env")
     description = data.get("description", "")
+    region = data.get("region")
+    repository = data.get("repository")
+    version = data.get("version")
 
     if not name:
         print("ERROR: missing required field: name (or scraper_id)", file=sys.stderr)
         sys.exit(1)
     if not env:
         print("ERROR: missing required field: env", file=sys.stderr)
+        sys.exit(1)
+    if not region:
+        print("ERROR: missing required field: region", file=sys.stderr)
+        sys.exit(1)
+    if not repository:
+        print("ERROR: missing required field: repository", file=sys.stderr)
+        sys.exit(1)
+    if not version:
+        print("ERROR: missing required field: version", file=sys.stderr)
         sys.exit(1)
 
     safe_name = sanitize(name)
@@ -47,7 +59,7 @@ def main() -> None:
     default_schedule_expression = "rate(15 minutes)"
 
     # Permitir override desde JSON
-    ecr_repo = data.get("ecr_repo") or default_ecr_repo
+    ecr_repo = data.get("ecr_repo") or repository or default_ecr_repo
     lambda_name = data.get("lambda_name") or default_lambda_name
     state_machine_name = data.get("state_machine_name") or default_sm_name
     schedule_name = data.get("schedule_name") or default_schedule_name
@@ -64,6 +76,9 @@ def main() -> None:
     print(f"env={env}")
     print(f"safe_env={safe_env}")
     print(f"description={description}")
+    print(f"region={region}")
+    print(f"repository={repository}")
+    print(f"version={version}")
 
     print(f"ecr_repo={ecr_repo}")
     print(f"lambda_name={lambda_name}")
