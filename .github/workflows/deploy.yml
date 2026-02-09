@@ -43,10 +43,25 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Select scraper config
+        id: select_config
+        run: |
+          CHANGED_CONFIG=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'config/*.json' | head -n 1)
+          if [ -n "$CHANGED_CONFIG" ]; then
+            CONFIG_FILE="$CHANGED_CONFIG"
+          else
+            CONFIG_FILE=$(git log -1 --name-only --pretty="" -- 'config/*.json' | head -n 1)
+          fi
+          if [ -z "$CONFIG_FILE" ]; then
+            echo "ERROR: No config JSON found in config/." >&2
+            exit 1
+          fi
+          echo "config_file=$CONFIG_FILE" >> "$GITHUB_OUTPUT"
+
       - name: Parse scraper config
         id: config
         run: |
-          python scripts/parse_config.py config/scraper.json >> "$GITHUB_OUTPUT"
+          python scripts/parse_config.py "${{ steps.select_config.outputs.config_file }}" >> "$GITHUB_OUTPUT"
 
       - uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -86,10 +101,25 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Select scraper config
+        id: select_config
+        run: |
+          CHANGED_CONFIG=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'config/*.json' | head -n 1)
+          if [ -n "$CHANGED_CONFIG" ]; then
+            CONFIG_FILE="$CHANGED_CONFIG"
+          else
+            CONFIG_FILE=$(git log -1 --name-only --pretty="" -- 'config/*.json' | head -n 1)
+          fi
+          if [ -z "$CONFIG_FILE" ]; then
+            echo "ERROR: No config JSON found in config/." >&2
+            exit 1
+          fi
+          echo "config_file=$CONFIG_FILE" >> "$GITHUB_OUTPUT"
+
       - name: Parse scraper config
         id: config
         run: |
-          python scripts/parse_config.py config/scraper.json >> "$GITHUB_OUTPUT"
+          python scripts/parse_config.py "${{ steps.select_config.outputs.config_file }}" >> "$GITHUB_OUTPUT"
 
       - uses: hashicorp/setup-terraform@v3
         with:
@@ -121,9 +151,54 @@ jobs:
             -var="ecr_repo=${{ steps.config.outputs.repository }}" \
             -var="lambda_name=${{ steps.config.outputs.lambda_name }}" \
             -var="state_machine_name=${{ steps.config.outputs.state_machine_name }}" \
-            -var="schedule_name=${{ steps.config.outputs.schedule_name }}" \
-            -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
             -var="lambda_exec_role_arn=${{ secrets.DEV_LAMBDA_EXEC_ROLE_ARN }}" \
             -var="sfn_role_arn=${{ secrets.DEV_SFN_ROLE_ARN }}" \
-            -var="scheduler_role_arn=${{ secrets.DEV_SCHEDULER_ROLE_ARN }}" \
             -var="image_tag=${{ steps.config.outputs.version }}"
+
+  run_step_function:
+    runs-on: ubuntu-latest
+    needs: [build_and_push, terraform_apply]
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Select scraper config
+        id: select_config
+        run: |
+          CHANGED_CONFIG=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- 'config/*.json' | head -n 1)
+          if [ -n "$CHANGED_CONFIG" ]; then
+            CONFIG_FILE="$CHANGED_CONFIG"
+          else
+            CONFIG_FILE=$(git log -1 --name-only --pretty="" -- 'config/*.json' | head -n 1)
+          fi
+          if [ -z "$CONFIG_FILE" ]; then
+            echo "ERROR: No config JSON found in config/." >&2
+            exit 1
+          fi
+          echo "config_file=$CONFIG_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Parse scraper config
+        id: config
+        run: |
+          python scripts/parse_config.py "${{ steps.select_config.outputs.config_file }}" >> "$GITHUB_OUTPUT"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ steps.config.outputs.region }}
+
+      - name: Trigger Step Function execution
+        run: |
+          SM_ARN=$(aws stepfunctions list-state-machines \
+            --query "stateMachines[?name=='${{ steps.config.outputs.state_machine_name }}'].stateMachineArn | [0]" \
+            --output text)
+          if [ -z "$SM_ARN" ] || [ "$SM_ARN" = "None" ]; then
+            echo "ERROR: State machine not found: ${{ steps.config.outputs.state_machine_name }}" >&2
+            exit 1
+          fi
+          aws stepfunctions start-execution --state-machine-arn "$SM_ARN" --input '{"source":"github-actions"}'

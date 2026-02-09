@@ -55,15 +55,16 @@ def main() -> None:
     default_ecr_repo = f"scrapers/{safe_env}/{safe_name}"
     default_lambda_name = f"scraper-{safe_env}-{safe_name}"
     default_sm_name = f"scraper-{safe_env}-{safe_name}-sm"
-    default_schedule_name = f"scraper-{safe_env}-{safe_name}-schedule"
-    default_schedule_expression = "rate(15 minutes)"
+    # Scheduler defaults (disabled for now)
+    # default_schedule_name = f"scraper-{safe_env}-{safe_name}-schedule"
+    # default_schedule_expression = "rate(15 minutes)"
 
     # Permitir override desde JSON
     ecr_repo = data.get("ecr_repo") or repository or default_ecr_repo
     lambda_name = data.get("lambda_name") or default_lambda_name
     state_machine_name = data.get("state_machine_name") or default_sm_name
-    schedule_name = data.get("schedule_name") or default_schedule_name
-    schedule_expression = data.get("schedule_expression") or default_schedule_expression
+    # schedule_name = data.get("schedule_name") or default_schedule_name
+    # schedule_expression = data.get("schedule_expression") or default_schedule_expression
 
     # Validaciones mínimas
     if not ecr_repo:
@@ -83,8 +84,8 @@ def main() -> None:
     print(f"ecr_repo={ecr_repo}")
     print(f"lambda_name={lambda_name}")
     print(f"state_machine_name={state_machine_name}")
-    print(f"schedule_name={schedule_name}")
-    print(f"schedule_expression={schedule_expression}")
+    # print(f"schedule_name={schedule_name}")
+    # print(f"schedule_expression={schedule_expression}")
 
 
 if __name__ == "__main__":

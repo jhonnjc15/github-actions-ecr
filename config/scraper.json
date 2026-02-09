@@ -4,6 +4,5 @@
   "region": "us-east-1",
   "repository": "gsfer-udv-int/etl-scrap-poultry-news",
   "version": "v1.4.28",
-  "description": "scraper de pruebaA",
-  "schedule_expression": "rate(15 minutes)"
+  "description": "scraper de pruebaA"
 }

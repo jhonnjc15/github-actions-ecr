@@ -68,18 +68,18 @@ resource "aws_sfn_state_machine" "sm" {
 }
 
 # -------------------------
-# EventBridge Scheduler
+# EventBridge Scheduler (disabled for now)
 # -------------------------
-resource "aws_scheduler_schedule" "schedule" {
-  name                = var.schedule_name
-  schedule_expression = var.schedule_expression
-  state               = "ENABLED"
-
-  flexible_time_window { mode = "OFF" }
-
-  target {
-    arn      = aws_sfn_state_machine.sm.arn
-    role_arn = var.scheduler_role_arn
-    input    = jsonencode({ source = "scheduler" })
-  }
-}
+# resource "aws_scheduler_schedule" "schedule" {
+#   name                = var.schedule_name
+#   schedule_expression = var.schedule_expression
+#   state               = "ENABLED"
+#
+#   flexible_time_window { mode = "OFF" }
+#
+#   target {
+#     arn      = aws_sfn_state_machine.sm.arn
+#     role_arn = var.scheduler_role_arn
+#     input    = jsonencode({ source = "scheduler" })
+#   }
+# }
