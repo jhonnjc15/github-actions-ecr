@@ -4,6 +4,10 @@ provider "aws" {
 
 locals {
   image_uri = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:${var.image_tag}"
+
+  # Extrae el nombre del role desde el ARN:
+  # arn:aws:iam::<acct>:role/<ROLE_NAME>
+  lambda_exec_role_name = regex("role/(.+)$", var.lambda_exec_role_arn)[0]
 }
 
 ## NOTE (Option 1 - simple):
@@ -15,7 +19,7 @@ locals {
 
 # resource "aws_ecr_repository_policy" "allow_lambda_pull" {
 #   repository = var.ecr_repo
-
+#
 #   policy = jsonencode({
 #     Version = "2012-10-17"
 #     Statement = [
@@ -36,7 +40,7 @@ locals {
 # }
 
 data "aws_iam_role" "lambda_exec" {
-  name = var.lambda_exec_role_arn
+  name = local.lambda_exec_role_name
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_ecr_readonly" {
@@ -55,14 +59,12 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
 resource "aws_lambda_function" "fn" {
   function_name = var.lambda_name
   package_type  = "Image"
-  image_uri     = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:${var.image_tag}"
+  image_uri     = local.image_uri
   role          = var.lambda_exec_role_arn
 
   timeout     = 900
   memory_size = 1024
 }
-
-
 
 # -------------------------
 # Step Functions State Machine
@@ -70,6 +72,7 @@ resource "aws_lambda_function" "fn" {
 resource "aws_sfn_state_machine" "sm" {
   name     = var.state_machine_name
   role_arn = var.sfn_role_arn
+
   definition = jsonencode({
     Comment = "Scraper workflow"
     StartAt = "RunLambda"
