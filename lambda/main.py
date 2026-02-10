@@ -1,3 +1,3 @@
 def lambda_handler(event, context):
-    print("Prueba!")
+    print("Prueba10!")
     return {"ok": True, "event": event}
