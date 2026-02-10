@@ -101,7 +101,7 @@ jobs:
       # -------------------------
       # Terraform (infra)
       # -------------------------
-      - name: Setup Terraform
+      - name: Setup Teerraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init (S3 backend)
