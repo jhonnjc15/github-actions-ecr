@@ -17,27 +17,27 @@ locals {
 ## If you want "infra-owned" ECR, add aws_ecr_repository + remove the workflow
 ## step that creates the repo.
 
-# resource "aws_ecr_repository_policy" "allow_lambda_pull" {
-#   repository = var.ecr_repo
-#
-#   policy = jsonencode({
-#     Version = "2012-10-17"
-#     Statement = [
-#       {
-#         Sid    = "AllowLambdaPull"
-#         Effect = "Allow"
-#         Principal = {
-#           AWS = var.lambda_exec_role_arn
-#         }
-#         Action = [
-#           "ecr:BatchGetImage",
-#           "ecr:GetDownloadUrlForLayer",
-#           "ecr:BatchCheckLayerAvailability"
-#         ]
-#       }
-#     ]
-#   })
-# }
+resource "aws_ecr_repository_policy" "allow_lambda_pull" {
+  repository = var.ecr_repo
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Sid    = "AllowLambdaPull"
+        Effect = "Allow"
+        Principal = {
+          Service = "lambda.amazonaws.com"
+        }
+        Action = [
+          "ecr:BatchGetImage",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchCheckLayerAvailability"
+        ]
+      }
+    ]
+  })
+}
 
 data "aws_iam_role" "lambda_exec" {
   name = local.lambda_exec_role_name
@@ -64,6 +64,12 @@ resource "aws_lambda_function" "fn" {
 
   timeout     = 900
   memory_size = 1024
+  
+  depends_on = [
+  aws_ecr_repository_policy.allow_lambda_pull,
+  aws_iam_role_policy_attachment.lambda_ecr_readonly,
+  aws_iam_role_policy_attachment.lambda_basic_logs
+]
 }
 
 # -------------------------
