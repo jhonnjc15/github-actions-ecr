@@ -12,15 +12,3 @@ variable "image_tag" {
   type    = string
   default = "latest"
 }
-
-variable "lambda_exec_role_arn" {
-  type = string
-}
-
-variable "sfn_role_arn" {
-  type = string
-}
-
-variable "scheduler_role_arn" {
-  type = string
-}

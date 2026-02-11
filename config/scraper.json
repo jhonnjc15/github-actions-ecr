@@ -3,5 +3,5 @@
   "env": "dev",
   "description": "toy scraper",
   "repository": "gsfer-udv-int/etl-scrap-poultry-news",
-  "version": "v1.1.1"
+  "version": "v1.1.2"
 }

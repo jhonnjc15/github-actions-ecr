@@ -120,6 +120,3 @@ jobs:
             -var="state_machine_name=${{ steps.config.outputs.state_machine_name }}" \
             -var="schedule_name=${{ steps.config.outputs.schedule_name }}" \
             -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
-            -var="lambda_exec_role_arn=${{ secrets.DEV_LAMBDA_EXEC_ROLE_ARN }}" \
-            -var="sfn_role_arn=${{ secrets.DEV_SFN_ROLE_ARN }}" \
-            -var="scheduler_role_arn=${{ secrets.DEV_SCHEDULER_ROLE_ARN }}"
