@@ -2,12 +2,13 @@ name: Build and Push Image to ECR (from JSON)
 
 on:
   push:
-    branches: [main]
+    branches: [dev, qa]
   workflow_dispatch:
 
 jobs:
-  credecncials:
+  deploy:
     runs-on: ubuntu-latest
+    environment: ${{ github.ref_name }}
     steps:
       - name: Configure AWS credentials (Access Keys)
         uses: aws-actions/configure-aws-credentials@v4
@@ -112,6 +113,7 @@ jobs:
         working-directory: infra
         run: |
           terraform apply -auto-approve \
+            -var="environment=${{ github.ref_name }}" \
             -var="aws_region=${{ secrets.AWS_REGION }}" \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="ecr_repo=${{ steps.config.outputs.repository }}" \
@@ -119,4 +121,4 @@ jobs:
             -var="lambda_name=${{ steps.config.outputs.lambda_name }}" \
             -var="state_machine_name=${{ steps.config.outputs.state_machine_name }}" \
             -var="schedule_name=${{ steps.config.outputs.schedule_name }}" \
-            -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
+            -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}"
