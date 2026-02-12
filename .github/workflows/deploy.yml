@@ -35,7 +35,6 @@ jobs:
       - name: Show parsed values
         run: |
           echo "name: ${{ steps.config.outputs.name }}"
-          echo "env: ${{ steps.config.outputs.env }}"
           echo "description: ${{ steps.config.outputs.description }}"
           echo "repository: ${{ steps.config.outputs.repository }}"
           echo "version: ${{ steps.config.outputs.version }}"
