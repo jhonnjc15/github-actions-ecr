@@ -4,7 +4,7 @@
 
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_exec" {
-  name = "${var.lambda_name}-exec"
+  name = "scraper-dev-lambda-exec"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -28,7 +28,7 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
 
 # Step Functions Role
 resource "aws_iam_role" "sfn_role" {
-  name = "${var.state_machine_name}-role"
+  name = "scraper-dev-sfn-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -42,7 +42,7 @@ resource "aws_iam_role" "sfn_role" {
 
 # Scheduler Role
 resource "aws_iam_role" "scheduler_role" {
-  name = "${var.schedule_name}-role"
+  name = "scraper-dev-scheduler-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
