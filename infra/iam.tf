@@ -1,55 +1,20 @@
 # -------------------------
-# IAM Roles (created by Terraform)
+# IAM Roles (shared, pre-created)
 # -------------------------
+#
+# IMPORTANT:
+# - These roles MUST already exist in the AWS account.
+# - Terraform in this stack will NOT create/replace IAM roles.
+# - Names are fixed per environment only.
 
-# Lambda Execution Role
-resource "aws_iam_role" "lambda_exec" {
-  name = "scraper-dev-lambda-exec"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = { Service = "lambda.amazonaws.com" }
-      Action = "sts:AssumeRole"
-    }]
-  })
+data "aws_iam_role" "lambda_exec" {
+  name = "scraper-${var.environment}-lambda-exec"
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_ecr_readonly" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+data "aws_iam_role" "sfn_role" {
+  name = "scraper-${var.environment}-sfn-role"
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_basic_logs" {
-  role       = aws_iam_role.lambda_exec.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
-
-# Step Functions Role
-resource "aws_iam_role" "sfn_role" {
-  name = "scraper-dev-sfn-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = { Service = "states.amazonaws.com" }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-# Scheduler Role
-resource "aws_iam_role" "scheduler_role" {
-  name = "scraper-dev-scheduler-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = { Service = "scheduler.amazonaws.com" }
-      Action = "sts:AssumeRole"
-    }]
-  })
+data "aws_iam_role" "scheduler_role" {
+  name = "scraper-${var.environment}-scheduler-role"
 }

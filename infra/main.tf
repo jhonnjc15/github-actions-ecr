@@ -48,7 +48,7 @@ resource "aws_lambda_function" "fn" {
   function_name = local.lambda_name
   package_type  = "Image"
   image_uri     = local.image_uri
-  role          = aws_iam_role.lambda_exec.arn
+  role          = data.aws_iam_role.lambda_exec.arn
 
   timeout     = 900
   memory_size = 1024
@@ -56,9 +56,7 @@ resource "aws_lambda_function" "fn" {
   tags = local.common_tags
 
   depends_on = [
-    aws_ecr_repository_policy.allow_lambda_pull,
-    aws_iam_role_policy_attachment.lambda_ecr_readonly,
-    aws_iam_role_policy_attachment.lambda_basic_logs
+    aws_ecr_repository_policy.allow_lambda_pull
   ]
 }
 
@@ -67,7 +65,7 @@ resource "aws_lambda_function" "fn" {
 # -------------------------
 resource "aws_sfn_state_machine" "sm" {
   name     = local.state_machine_name
-  role_arn = aws_iam_role.sfn_role.arn
+  role_arn = data.aws_iam_role.sfn_role.arn
 
   definition = jsonencode({
     Comment = "Scraper workflow"
@@ -96,44 +94,15 @@ resource "aws_scheduler_schedule" "schedule" {
 
   target {
     arn      = aws_sfn_state_machine.sm.arn
-    role_arn = aws_iam_role.scheduler_role.arn
+    role_arn = data.aws_iam_role.scheduler_role.arn
     input    = jsonencode({ source = "scheduler", env = var.environment })
   }
 }
 
 # -------------------------
-# Permissions (depend on created resources)
+# IMPORTANT (permissions)
 # -------------------------
-
-# SFN can invoke the Lambda
-resource "aws_iam_role_policy" "sfn_invoke_lambda" {
-  name = "${local.state_machine_name}-invoke-lambda"
-  role = aws_iam_role.sfn_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["lambda:InvokeFunction"]
-      Resource = [
-        aws_lambda_function.fn.arn,
-        "${aws_lambda_function.fn.arn}:*"
-      ]
-    }]
-  })
-}
-
-# Scheduler can start the SFN execution
-resource "aws_iam_role_policy" "scheduler_start_sfn" {
-  name = "${local.schedule_name}-start-sfn"
-  role = aws_iam_role.scheduler_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["states:StartExecution"]
-      Resource = aws_sfn_state_machine.sm.arn
-    }]
-  })
-}
+# This stack assumes the *pre-created shared roles* already have the needed permissions:
+# - Lambda exec role: basic logs + ECR read
+# - SFN role: lambda:InvokeFunction on the target Lambda(s)
+# - Scheduler role: states:StartExecution on the target StateMachine(s)
