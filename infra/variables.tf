@@ -28,3 +28,18 @@ variable "stack_id" {
   type        = string
   description = "Unique stack identifier (from config id)."
 }
+
+variable "lambda_role_name" {
+  type        = string
+  description = "Pre-created IAM role name for Lambda execution (from GitHub secrets)."
+}
+
+variable "step_function_role_name" {
+  type        = string
+  description = "Pre-created IAM role name for Step Functions (from GitHub secrets)."
+}
+
+variable "eventbridge_role_name" {
+  type        = string
+  description = "Pre-created IAM role name for EventBridge Scheduler (from GitHub secrets)."
+}

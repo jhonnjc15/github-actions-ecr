@@ -3,8 +3,8 @@
   "description": "toy scraper 1",
   "repository": "gsfer-udv-int/etl-scrap-poultry-news-prueba3",
   "version": "v1.1.1",
-  "lambda_name": "scraper_prueba2",
-  "state_machine_name": "scraper_prueba2",
-  "schedule_name": "scraper_prueba2",
+  "lambda_name": "scraper_prueba3",
+  "state_machine_name": "scraper_prueba3",
+  "schedule_name": "scraper_prueba3",
   "schedule_expression": "cron(0 10 * * ? *)"
 }
