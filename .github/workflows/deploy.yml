@@ -84,6 +84,7 @@ jobs:
         with:
           context: ./lambda
           push: true
+          platforms: linux/amd64
           tags: |
             ${{ env.IMAGE_URI }}:${{ steps.config.outputs.version }}
             ${{ env.IMAGE_URI }}:${{ github.sha }}
