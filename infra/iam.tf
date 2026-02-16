@@ -8,7 +8,7 @@
 # - Names are fixed per environment only.
 
 data "aws_iam_role" "lambda_exec" {
-  name = "scraper-${var.environment}-lambda-exec"
+  name = "scraper-${var.environment}-lambda-exec-2"
 }
 
 data "aws_iam_role" "sfn_role" {
