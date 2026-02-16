@@ -30,10 +30,36 @@ jobs:
         with:
           fetch-depth: 2
 
+      # -------------------------------------------------
+      # Pick JSON config changed in this push (generic)
+      # -------------------------------------------------
+      - name: Pick config JSON changed in this push
+        id: pick_config
+        shell: bash
+        run: |
+          BASE="${{ github.event.before }}"
+          HEAD="${{ github.sha }}"
+
+          # Buscar JSON modificados dentro de config/
+          FILE=$(git diff --name-only "$BASE" "$HEAD" \
+            | grep -E '^config/.*\.json$' \
+            | tail -n 1)
+
+          if [ -z "$FILE" ]; then
+            # fallback si no se modificó ningún json
+            FILE="config/scraper.json"
+          fi
+
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+          echo "Using config: $FILE"
+
+      # -------------------------------------------------
+      # Parse selected JSON
+      # -------------------------------------------------
       - name: Parse scraper config (Python)
         id: config
         run: |
-          python scripts/parse_json.py config/scraper.json >> "$GITHUB_OUTPUT"
+          python scripts/parse_json.py "${{ steps.pick_config.outputs.file }}" >> "$GITHUB_OUTPUT"
 
       - name: Show parsed values
         run: |
