@@ -194,3 +194,8 @@ jobs:
             -var="lambda_role_name=${{ secrets.LAMBDA_ROLE_NAME }}" \
             -var="step_function_role_name=${{ secrets.STEP_FUNCTION_ROLE_NAME }}" \
             -var="eventbridge_role_name=${{ secrets.EVENTBRIDGE_ROLE_NAME }}"
+      
+      - name: Run after deploy
+        if: steps.config.outputs.run_after_deploy == 'true'
+        run: |
+          aws stepfunctions start-execution ...

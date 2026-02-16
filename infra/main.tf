@@ -89,15 +89,21 @@ resource "aws_sfn_state_machine" "sm" {
 # EventBridge Scheduler
 # -------------------------
 resource "aws_scheduler_schedule" "schedule" {
+  count = var.schedule_enabled ? 1 : 0
+
   name                = local.schedule_name
   schedule_expression = var.schedule_expression
-  state               = "ENABLED"
+
+  schedule_expression_timezone = var.schedule_timezone
+
+  state = "ENABLED"
 
   flexible_time_window { mode = "OFF" }
 
   target {
     arn      = aws_sfn_state_machine.sm.arn
     role_arn = data.aws_iam_role.scheduler_role.arn
+
     input = jsonencode({
       source   = "scheduler",
       env      = var.environment,
@@ -105,11 +111,3 @@ resource "aws_scheduler_schedule" "schedule" {
     })
   }
 }
-
-# -------------------------
-# IMPORTANT (permissions)
-# -------------------------
-# This stack assumes the *pre-created shared roles* already have the needed permissions:
-# - Lambda exec role: basic logs + ECR read
-# - SFN role: lambda:InvokeFunction on the target Lambda(s)
-# - Scheduler role: states:StartExecution on the target StateMachine(s)

@@ -43,3 +43,15 @@ variable "eventbridge_role_name" {
   type        = string
   description = "Pre-created IAM role name for EventBridge Scheduler (from GitHub secrets)."
 }
+
+variable "schedule_enabled" {
+  description = "Si es true, crea el EventBridge Scheduler; si es false, no se crea."
+  type        = bool
+  default     = true
+}
+
+variable "schedule_timezone" {
+  description = "Zona horaria para interpretar el cron del scheduler."
+  type        = string
+  default     = "America/Lima"
+}
