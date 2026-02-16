@@ -29,6 +29,19 @@ def slugify(value: str) -> str:
     return value
 
 
+def to_bool(v, default=False) -> bool:
+    if v is None:
+        return default
+    if isinstance(v, bool):
+        return v
+    s = str(v).strip().lower()
+    if s in ("true", "1", "yes", "y", "on"):
+        return True
+    if s in ("false", "0", "no", "n", "off"):
+        return False
+    return default
+
+
 stack_id = slugify(stack_id_raw)
 
 # Base names (Terraform añadirá -<env>-<stack_id>)
@@ -36,8 +49,25 @@ lambda_name = str(data.get("lambda_name") or data.get("id")).strip()
 state_machine_name = str(data.get("state_machine_name") or data.get("id")).strip()
 schedule_name = str(data.get("schedule_name") or data.get("id")).strip()
 
-# Schedule expression default (si no viene)
-schedule_expression = str(data.get("schedule_expression") or "cron(0 10 * * ? *)").strip()
+# ------------------------------------------------------------
+# Schedule (nuevo formato)
+# ------------------------------------------------------------
+schedule_obj = data.get("schedule") or {}
+schedule_enabled = to_bool(schedule_obj.get("enabled"), default=True)
+
+# Si no viene expression, usa default
+schedule_expression = str(
+    schedule_obj.get("expression")
+    or data.get("schedule_expression")
+    or "cron(0 10 * * ? *)"
+).strip()
+
+schedule_timezone = str(schedule_obj.get("timezone") or "America/Lima").strip()
+
+# ------------------------------------------------------------
+# Run after deploy (nuevo)
+# ------------------------------------------------------------
+run_after_deploy = to_bool(data.get("run_after_deploy"), default=False)
 
 # Campos opcionales
 description = str(data.get("description", "")).strip()
@@ -57,3 +87,8 @@ print(f"lambda_name={lambda_name}")
 print(f"state_machine_name={state_machine_name}")
 print(f"schedule_name={schedule_name}")
 print(f"schedule_expression={schedule_expression}")
+print(f"schedule_enabled={str(schedule_enabled).lower()}")
+print(f"schedule_timezone={schedule_timezone}")
+
+# Outputs para workflow
+print(f"run_after_deploy={str(run_after_deploy).lower()}")
