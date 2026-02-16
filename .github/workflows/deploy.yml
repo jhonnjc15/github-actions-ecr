@@ -76,7 +76,7 @@ jobs:
           echo "Repo: ${{ steps.config.outputs.repository }}"
           echo "Version: ${{ steps.config.outputs.version }}"
 
-      - name: Build and push image (Docker Action)
+      - name: Build and push image (Lambda-compatible)
         if: steps.check_image.outputs.image_exists == 'false'
         uses: docker/build-push-action@v6
         env:
@@ -85,10 +85,12 @@ jobs:
           context: ./lambda
           push: true
           platforms: linux/amd64
+          provenance: false
+          sbom: false
           tags: |
-            ${{ env.IMAGE_URI }}:${{ steps.config.outputs.version }}
             ${{ env.IMAGE_URI }}:${{ github.sha }}
-            ${{ env.IMAGE_URI }}:latest
+            ${{ env.IMAGE_URI }}:${{ github.ref_name }}
+            ${{ env.IMAGE_URI }}:${{ steps.config.outputs.version }}
 
       - name: Output published image
         if: steps.check_image.outputs.image_exists == 'false'
