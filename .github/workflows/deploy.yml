@@ -33,21 +33,34 @@ jobs:
       # -------------------------------------------------
       # Pick JSON config changed in this push (generic)
       # -------------------------------------------------
-      - name: Pick config JSON changed in this push
+      - name: Pick config JSON (last changed in push; else last modified in repo)
         id: pick_config
         shell: bash
         run: |
           BASE="${{ github.event.before }}"
           HEAD="${{ github.sha }}"
 
-          # Buscar JSON modificados dentro de config/
+          # En workflow_dispatch o casos raros, "before" puede venir vacío o con ceros
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="$(git rev-parse HEAD~1)"
+          fi
+
+          # 1) Intentar tomar el último JSON modificado dentro de config/ en este push
           FILE=$(git diff --name-only "$BASE" "$HEAD" \
-            | grep -E '^config/.*\.json$' \
+            | awk '/^config\/.*\.json$/ {print}' \
             | tail -n 1)
 
+          # 2) Si no hubo cambios en config/*.json, tomar el último JSON modificado en el repo (historial git)
           if [ -z "$FILE" ]; then
-            # fallback si no se modificó ningún json
-            FILE="config/scraper.json"
+            FILE=$(git log -n 1 --name-only --pretty=format: -- config \
+              | awk '/^config\/.*\.json$/ {print}' \
+              | head -n 1)
+          fi
+
+          # 3) Último fallback (por si no hay ningún json en config/)
+          if [ -z "$FILE" ]; then
+            echo "No JSON config found under config/. Please add one." >&2
+            exit 1
           fi
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
@@ -56,7 +69,7 @@ jobs:
       # -------------------------------------------------
       # Parse selected JSON
       # -------------------------------------------------
-      - name: Parse scraper config (Python)
+      - name: Parse config (Python)
         id: config
         run: |
           python scripts/parse_json.py "${{ steps.pick_config.outputs.file }}" >> "$GITHUB_OUTPUT"
