@@ -2,7 +2,7 @@
   "id": "prueba 1",
   "description": "toy scraper 1",
   "repository": "gsfer-udv-int/etl-scrap-poultry-news-prueba1",
-  "version": "v1.1.1",
+  "version": "v1.1.2",
   "lambda_name": "scraper1",
   "state_machine_name": "scraper1",
   "schedule_name": "scraper1",
