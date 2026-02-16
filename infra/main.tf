@@ -50,6 +50,8 @@ resource "aws_lambda_function" "fn" {
   image_uri     = local.image_uri
   role          = data.aws_iam_role.lambda_exec.arn
 
+  architectures = ["x86_64"]  # <- recomendado si build es amd64
+
   timeout     = 900
   memory_size = 1024
 
