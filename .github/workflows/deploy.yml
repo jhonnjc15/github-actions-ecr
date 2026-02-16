@@ -164,7 +164,7 @@ jobs:
             -backend-config="region=${{ secrets.AWS_REGION }}" \
             -backend-config="key=state/${{ github.ref_name }}/${{ steps.config.outputs.id }}/terraform.tfstate"
 
-      - name: Terraform apply (Lambda + SFN + Scheduler)
+      - name: Terraform apply (Lambda + SFN +  Scheduler)
         working-directory: infra
         run: |
           terraform apply -auto-approve \
