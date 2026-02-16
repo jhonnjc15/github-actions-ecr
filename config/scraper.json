@@ -1,10 +1,10 @@
 {
-  "name": "prueba 4",
-  "description": "toy scraper 4",
-  "repository": "gsfer-udv-int/etl-scrap-poultry-news",
-  "version": "v1.1.5",
-  "lambda_name": "scraper4",
-  "state_machine_name": "scraper4",
-  "schedule_name": "scraper4",
+  "id": "prueba 1",
+  "description": "toy scraper 1",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news-prueba1",
+  "version": "v1.1.1",
+  "lambda_name": "scraper1",
+  "state_machine_name": "scraper1",
+  "schedule_name": "scraper1",
   "schedule_expression": "cron(0 8 * * ? *)"
 }

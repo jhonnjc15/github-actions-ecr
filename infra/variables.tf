@@ -23,3 +23,8 @@ variable "environment" {
   type        = string
   description = "Deployment environment (dev|qa)"
 }
+
+variable "stack_id" {
+  type        = string
+  description = "Unique stack identifier (from config id)."
+}

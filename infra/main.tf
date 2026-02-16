@@ -3,17 +3,18 @@ provider "aws" {
 }
 
 locals {
-  # Nombres con sufijo por ambiente
-  lambda_name        = "${var.lambda_name}-${var.environment}"
-  state_machine_name = "${var.state_machine_name}-${var.environment}"
-  schedule_name      = "${var.schedule_name}-${var.environment}"
+  # Nombres con sufijo por ambiente + stack
+  lambda_name        = "${var.lambda_name}-${var.environment}-${var.stack_id}"
+  state_machine_name = "${var.state_machine_name}-${var.environment}-${var.stack_id}"
+  schedule_name      = "${var.schedule_name}-${var.environment}-${var.stack_id}"
 
   # Imagen ECR
   image_uri = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:${var.image_tag}"
 
-  # (Opcional) tags comunes
+  # Tags comunes (recomendado para gobernanza)
   common_tags = {
     environment = var.environment
+    stack_id    = var.stack_id
     managed_by  = "terraform"
     project     = "scraper"
   }
@@ -50,7 +51,7 @@ resource "aws_lambda_function" "fn" {
   image_uri     = local.image_uri
   role          = data.aws_iam_role.lambda_exec.arn
 
-  architectures = ["x86_64"]  # <- recomendado si build es amd64
+  architectures = ["x86_64"] # build linux/amd64
 
   timeout     = 900
   memory_size = 1024
@@ -97,7 +98,11 @@ resource "aws_scheduler_schedule" "schedule" {
   target {
     arn      = aws_sfn_state_machine.sm.arn
     role_arn = data.aws_iam_role.scheduler_role.arn
-    input    = jsonencode({ source = "scheduler", env = var.environment })
+    input = jsonencode({
+      source   = "scheduler",
+      env      = var.environment,
+      stack_id = var.stack_id
+    })
   }
 }
 

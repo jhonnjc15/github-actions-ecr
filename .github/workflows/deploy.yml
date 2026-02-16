@@ -28,7 +28,7 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2   # necesario para git diff
+          fetch-depth: 2
 
       - name: Parse scraper config (Python)
         id: config
@@ -37,6 +37,7 @@ jobs:
 
       - name: Show parsed values
         run: |
+          echo "id: ${{ steps.config.outputs.id }}"
           echo "name: ${{ steps.config.outputs.name }}"
           echo "description: ${{ steps.config.outputs.description }}"
           echo "repository: ${{ steps.config.outputs.repository }}"
@@ -91,11 +92,6 @@ jobs:
             echo "image_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
-      # -------------------------------------------------
-      # Skip build ONLY if:
-      # - lambda did NOT change
-      # - AND image already exists
-      # -------------------------------------------------
       - name: Image already exists — finishing
         if: steps.lambda_changes.outputs.lambda_changed == 'false' && steps.check_image.outputs.image_exists == 'true'
         run: |
@@ -103,12 +99,6 @@ jobs:
           echo "Repo: ${{ steps.config.outputs.repository }}"
           echo "Version: ${{ steps.config.outputs.version }}"
 
-      # -------------------------------------------------
-      # Build if:
-      # - lambda changed
-      # OR
-      # - version does not exist
-      # -------------------------------------------------
       - name: Build and push image (Lambda-compatible)
         if: steps.lambda_changes.outputs.lambda_changed == 'true' || steps.check_image.outputs.image_exists == 'false'
         uses: docker/build-push-action@v6
@@ -135,20 +125,25 @@ jobs:
           echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.repository }}:${{ github.ref_name }}"
 
       # -------------------------
-      # Terraform (infra)
+      # Terraform (infra) - MULTI STACK
       # -------------------------
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
-      - name: Terraform init (S3 backend)
+      - name: Terraform init (S3 backend per stack)
         working-directory: infra
-        run: terraform init
+        run: |
+          terraform init \
+            -backend-config="bucket=backend-ga" \
+            -backend-config="region=${{ secrets.AWS_REGION }}" \
+            -backend-config="key=state/${{ github.ref_name }}/${{ steps.config.outputs.id }}/terraform.tfstate"
 
       - name: Terraform apply (Lambda + SFN + Scheduler)
         working-directory: infra
         run: |
           terraform apply -auto-approve \
             -var="environment=${{ github.ref_name }}" \
+            -var="stack_id=${{ steps.config.outputs.id }}" \
             -var="aws_region=${{ secrets.AWS_REGION }}" \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="ecr_repo=${{ steps.config.outputs.repository }}" \
