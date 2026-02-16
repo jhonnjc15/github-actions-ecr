@@ -9,6 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ github.ref_name }}
+
     steps:
       - name: Configure AWS credentials (Access Keys)
         uses: aws-actions/configure-aws-credentials@v4
@@ -26,6 +27,8 @@ jobs:
           python-version: "3.11"
 
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2   # necesario para git diff
 
       - name: Parse scraper config (Python)
         id: config
@@ -39,6 +42,21 @@ jobs:
           echo "repository: ${{ steps.config.outputs.repository }}"
           echo "version: ${{ steps.config.outputs.version }}"
 
+      # -------------------------------------------------
+      # Detect if lambda/ changed
+      # -------------------------------------------------
+      - name: Detect changes in lambda/
+        id: lambda_changes
+        shell: bash
+        run: |
+          if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -qE '^lambda/'; then
+            echo "lambda_changed=true" >> "$GITHUB_OUTPUT"
+            echo "Lambda folder changed."
+          else
+            echo "lambda_changed=false" >> "$GITHUB_OUTPUT"
+            echo "Lambda folder NOT changed."
+          fi
+
       - name: Ensure ECR repository exists
         shell: bash
         run: |
@@ -49,8 +67,12 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
+      # -------------------------------------------------
+      # Only check image existence if lambda did NOT change
+      # -------------------------------------------------
       - name: Check if image version already exists
         id: check_image
+        if: steps.lambda_changes.outputs.lambda_changed == 'false'
         shell: bash
         run: |
           REPO="${{ steps.config.outputs.repository }}"
@@ -65,19 +87,30 @@ jobs:
             echo "Image already exists: $REPO:$VERSION"
             echo "image_exists=true" >> "$GITHUB_OUTPUT"
           else
-            echo "Image does not exist, continuing..."
+            echo "Image does not exist."
             echo "image_exists=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # -------------------------------------------------
+      # Skip build ONLY if:
+      # - lambda did NOT change
+      # - AND image already exists
+      # -------------------------------------------------
       - name: Image already exists — finishing
-        if: steps.check_image.outputs.image_exists == 'true'
+        if: steps.lambda_changes.outputs.lambda_changed == 'false' && steps.check_image.outputs.image_exists == 'true'
         run: |
-          echo "La imagen ya existe en ECR. Finalizando."
+          echo "La imagen ya existe en ECR y lambda no cambió. Finalizando build."
           echo "Repo: ${{ steps.config.outputs.repository }}"
           echo "Version: ${{ steps.config.outputs.version }}"
 
+      # -------------------------------------------------
+      # Build if:
+      # - lambda changed
+      # OR
+      # - version does not exist
+      # -------------------------------------------------
       - name: Build and push image (Lambda-compatible)
-        if: steps.check_image.outputs.image_exists == 'false'
+        if: steps.lambda_changes.outputs.lambda_changed == 'true' || steps.check_image.outputs.image_exists == 'false'
         uses: docker/build-push-action@v6
         env:
           IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.repository }}
@@ -93,18 +126,18 @@ jobs:
             ${{ env.IMAGE_URI }}:${{ steps.config.outputs.version }}
 
       - name: Output published image
-        if: steps.check_image.outputs.image_exists == 'false'
+        if: steps.lambda_changes.outputs.lambda_changed == 'true' || steps.check_image.outputs.image_exists == 'false'
         shell: bash
         run: |
           echo "Pushed:"
           echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.repository }}:${{ steps.config.outputs.version }}"
           echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.repository }}:${{ github.sha }}"
-          echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.repository }}:latest"
-      
+          echo "${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ steps.config.outputs.repository }}:${{ github.ref_name }}"
+
       # -------------------------
       # Terraform (infra)
       # -------------------------
-      - name: Setup Teerraform
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
 
       - name: Terraform init (S3 backend)
