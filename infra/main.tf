@@ -48,7 +48,7 @@ resource "aws_lambda_function" "fn" {
   function_name = local.lambda_name
   package_type  = "Image"
   image_uri     = local.image_uri
-  role          = data.aws_iam_role.lambda_exec.arn
+  role          = data.aws_iam_role.lambda_exec.name
 
   timeout     = 900
   memory_size = 1024
@@ -65,7 +65,7 @@ resource "aws_lambda_function" "fn" {
 # -------------------------
 resource "aws_sfn_state_machine" "sm" {
   name     = local.state_machine_name
-  role_arn = data.aws_iam_role.sfn_role.arn
+  role_arn = data.aws_iam_role.sfn_role.name
 
   definition = jsonencode({
     Comment = "Scraper workflow"
@@ -94,7 +94,7 @@ resource "aws_scheduler_schedule" "schedule" {
 
   target {
     arn      = aws_sfn_state_machine.sm.arn
-    role_arn = data.aws_iam_role.scheduler_role.arn
+    role_arn = data.aws_iam_role.scheduler_role.name
     input    = jsonencode({ source = "scheduler", env = var.environment })
   }
 }
