@@ -28,39 +28,38 @@ jobs:
 
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       # -------------------------------------------------
       # Pick JSON config changed in this push (generic)
       # -------------------------------------------------
-      - name: Pick config JSON (use changed in this commit; else last changed in repo)
+      - name: Pick config JSON (use changed in this push; else last changed in repo)
         id: pick_config
         shell: bash
         run: |
           set -euo pipefail
 
+          BEFORE="${{ github.event.before }}"
           HEAD="${{ github.sha }}"
 
-          # 1) Si ESTE commit tocó algún config/*.json, toma el último
-          FILE=$(git diff-tree --no-commit-id --name-only -r "$HEAD" \
-            | awk '/^config\/.*\.json$/ {print}' \
-            | tail -n 1)
+          # 1) Si ESTE push tocó algún config/*.json, toma el más recientemente tocado en el rango
+          FILE=$(git log -n 1 --name-only --pretty=format: "$BEFORE..$HEAD" -- config \
+            | awk '/^config\/.*\.json$/ {print; exit}')
 
-          # 2) Si no tocó config en este commit, toma el último config tocado en la historia
-          if [ -z "$FILE" ]; then
+          # 2) Si este push NO tocó config, toma el último config tocado en la historia
+          if [ -z "${FILE:-}" ]; then
             FILE=$(git log -n 1 --name-only --pretty=format: -- config \
-              | awk '/^config\/.*\.json$/ {print}' \
-              | head -n 1)
+              | awk '/^config\/.*\.json$/ {print; exit}')
           fi
 
-          if [ -z "$FILE" ]; then
+          if [ -z "${FILE:-}" ]; then
             echo "No JSON config found under config/." >&2
             exit 1
           fi
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
           echo "Using config: $FILE"
-          
+
       # -------------------------------------------------
       # Parse selected JSON
       # -------------------------------------------------
