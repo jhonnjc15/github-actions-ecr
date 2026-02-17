@@ -8,7 +8,7 @@
   "schedule_name": "news",
   "schedule": {
     "enabled": true,
-    "expression": "cron(0 8 * * ? *)",
+    "expression": "cron(0 10 * * ? *)",
     "timezone": "America/Lima"
   },
 
