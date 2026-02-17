@@ -221,4 +221,4 @@ jobs:
           aws stepfunctions start-execution \
             --state-machine-arn "$STATE_MACHINE_ARN" \
             --name "postdeploy-${{ steps.config.outputs.id }}-${{ github.run_id }}" \
-            --input "{\"source\":\"post_deploy\",\"env\":\"${{ github.ref_name }}\",\"stack_id\":\"${{ steps.config.outputs.id }}\",\"image_tag\":\"${{ steps.config.outputs.version }}\"}"
+            --input "{\"source\":\"post_deploy\",\"env\":\"${{ github.ref_name }}\",\"github_repository\":\"${{ github.repository }}\",\"image_tag\":\"${{ steps.config.outputs.version }}\"}"
