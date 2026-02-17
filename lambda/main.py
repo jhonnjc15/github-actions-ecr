@@ -12,12 +12,12 @@ from bs4 import BeautifulSoup
 from prompt import USER_PROMPT, SYSTEM_PROMPTV3
 
 # ================== CONFIGURACIÓN GENERAL ==================
-BUCKET_NAME = "s3ue1lhclbackdinv01"
-RAW_NEWS = "lhcldata/dev/gsfer/rdv/api/archive/HD_NOTICIAS/codapp=POULTRYWORLD/"
-PROCESS_NEWS = "lhcldata/dev/gsfer/rdv/api/data/HD_NOTICIAS/codapp=POULTRYWORLD/"
-BASE_URL = "https://www.poultryworld.net/news-archive/"
-WEB_ORIGEN = "https://www.poultryworld.net/"
-HAIKU_ID = "us.anthropic.claude-3-haiku-20240307-v1:0"
+BUCKET_NAME = "XXXXXXX"
+RAW_NEWS = "XXXXXXX"
+PROCESS_NEWS = "XXXXXXX"
+BASE_URL = "XXXXXXX/"
+WEB_ORIGEN = "XXXXXXX"
+HAIKU_ID = "XXXXXXX"
 
 s3 = boto3.client("s3")
 
