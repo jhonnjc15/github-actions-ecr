@@ -1,0 +1,15 @@
+{
+  "id": "social",
+  "description": "toy scraper about social",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news/social",
+  "version": "v1.1.2",
+  "lambda_name": "lambda_social",
+  "state_machine_name": "state_machine_social",
+  "schedule_name": "schedule_name_social",
+  "schedule": {
+    "enabled": false,
+    "expression": "cron(0 8 * * ? *)",
+    "timezone": "America/Lima"
+  },
+  "run_after_deploy": false
+}
