@@ -1,16 +1,15 @@
 {
-  "id": "prueba 4",
-  "description": "toy scraper 4",
-  "repository": "gsfer-udv-int/etl-scrap-poultry-news-prueba4",
+  "id": "social_media",
+  "description": "toy scraper about social_media",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news/social_media",
   "version": "v1.1.1",
-  "lambda_name": "scraper2",
-  "state_machine_name": "scraper2",
-  "schedule_name": "scraper2",
+  "lambda_name": "social_media",
+  "state_machine_name": "social_media",
+  "schedule_name": "social_media",
   "schedule": {
-    "enabled": false,
+    "enabled": true,
     "expression": "cron(0 8 * * ? *)",
     "timezone": "America/Lima"
   },
-
   "run_after_deploy": true
 }
