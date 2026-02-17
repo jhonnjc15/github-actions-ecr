@@ -4,9 +4,9 @@ provider "aws" {
 
 locals {
   # Nombres con sufijo por ambiente + stack
-  lambda_name        = "${var.lambda_name}-${var.environment}-${var.stack_id}"
-  state_machine_name = "${var.state_machine_name}-${var.environment}-${var.stack_id}"
-  schedule_name      = "${var.schedule_name}-${var.environment}-${var.stack_id}"
+  lambda_name        = "${var.lambda_name}"
+  state_machine_name = "${var.state_machine_name}"
+  schedule_name      = "${var.schedule_name}"
 
   # Imagen ECR
   image_uri = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:${var.image_tag}"

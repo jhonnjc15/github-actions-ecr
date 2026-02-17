@@ -11,6 +11,5 @@
     "expression": "cron(0 10 * * ? *)",
     "timezone": "America/Lima"
   },
-
   "run_after_deploy": false
 }
