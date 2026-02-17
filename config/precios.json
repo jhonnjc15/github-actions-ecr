@@ -1,11 +1,11 @@
 {
-  "id": "deudas",
-  "description": "toy scraper deudas",
-  "repository": "gsfer-udv-int/etl-scrap-poultry-news/deudas_scraper",
+  "id": "news",
+  "description": "toy scraper news",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news/news_scraper",
   "version": "v1.1.1",
-  "lambda_name": "deudas",
-  "state_machine_name": "deudas",
-  "schedule_name": "deudas",
+  "lambda_name": "news",
+  "state_machine_name": "news",
+  "schedule_name": "news",
   "schedule": {
     "enabled": false,
     "expression": "cron(0 8 * * ? *)",
