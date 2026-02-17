@@ -188,6 +188,7 @@ jobs:
             -var="schedule_enabled=${{ steps.config.outputs.schedule_enabled }}" \
             -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
             -var="schedule_timezone=${{ steps.config.outputs.schedule_timezone }}" \
+            -var="github_repository=${{ github.repository }}" \
             -var="lambda_role_name=${{ secrets.LAMBDA_ROLE_NAME }}" \
             -var="step_function_role_name=${{ secrets.STEP_FUNCTION_ROLE_NAME }}" \
             -var="eventbridge_role_name=${{ secrets.EVENTBRIDGE_ROLE_NAME }}"
