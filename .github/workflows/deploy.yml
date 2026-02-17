@@ -33,39 +33,34 @@ jobs:
       # -------------------------------------------------
       # Pick JSON config changed in this push (generic)
       # -------------------------------------------------
-      - name: Pick config JSON (last changed in push; else last modified in repo)
+      - name: Pick config JSON (use changed in this commit; else last changed in repo)
         id: pick_config
         shell: bash
         run: |
-          BASE="${{ github.event.before }}"
+          set -euo pipefail
+
           HEAD="${{ github.sha }}"
 
-          # En workflow_dispatch o casos raros, "before" puede venir vacío o con ceros
-          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
-            BASE="$(git rev-parse HEAD~1)"
-          fi
-
-          # 1) Intentar tomar el último JSON modificado dentro de config/ en este push
-          FILE=$(git diff --name-only "$BASE" "$HEAD" \
+          # 1) Si ESTE commit tocó algún config/*.json, toma el último
+          FILE=$(git diff-tree --no-commit-id --name-only -r "$HEAD" \
             | awk '/^config\/.*\.json$/ {print}' \
             | tail -n 1)
 
-          # 2) Si no hubo cambios en config/*.json, tomar el último JSON modificado en el repo (historial git)
+          # 2) Si no tocó config en este commit, toma el último config tocado en la historia
           if [ -z "$FILE" ]; then
             FILE=$(git log -n 1 --name-only --pretty=format: -- config \
               | awk '/^config\/.*\.json$/ {print}' \
               | head -n 1)
           fi
 
-          # 3) Último fallback (por si no hay ningún json en config/)
           if [ -z "$FILE" ]; then
-            echo "No JSON config found under config/. Please add one." >&2
+            echo "No JSON config found under config/." >&2
             exit 1
           fi
 
           echo "file=$FILE" >> "$GITHUB_OUTPUT"
           echo "Using config: $FILE"
-
+          
       # -------------------------------------------------
       # Parse selected JSON
       # -------------------------------------------------
@@ -193,6 +188,7 @@ jobs:
             -var="schedule_enabled=${{ steps.config.outputs.schedule_enabled }}" \
             -var="schedule_expression=${{ steps.config.outputs.schedule_expression }}" \
             -var="schedule_timezone=${{ steps.config.outputs.schedule_timezone }}" \
+            -var="github_repository=${{ github.repository }}" \
             -var="lambda_role_name=${{ secrets.LAMBDA_ROLE_NAME }}" \
             -var="step_function_role_name=${{ secrets.STEP_FUNCTION_ROLE_NAME }}" \
             -var="eventbridge_role_name=${{ secrets.EVENTBRIDGE_ROLE_NAME }}"

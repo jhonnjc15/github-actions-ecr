@@ -55,3 +55,8 @@ variable "schedule_timezone" {
   type        = string
   default     = "America/Lima"
 }
+
+variable "github_repository" {
+  description = "Repositorio GitHub que ejecuta el deploy"
+  type        = string
+}

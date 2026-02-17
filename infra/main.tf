@@ -12,11 +12,19 @@ locals {
   image_uri = "${var.aws_account_id}.dkr.ecr.${var.aws_region}.amazonaws.com/${var.ecr_repo}:${var.image_tag}"
 
   # Tags comunes (recomendado para gobernanza)
+  # Tags
   common_tags = {
     environment = var.environment
     stack_id    = var.stack_id
     managed_by  = "terraform"
     project     = "scraper"
+
+    DOMINIO     = "GSFER_RDV_APP"
+    PRIORITARIO = "NO"
+    CAPA        = "RDV"
+    ORIGEN      = "POULTRY"
+
+    github_repo = var.github_repository
   }
 }
 
