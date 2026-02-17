@@ -7,8 +7,8 @@
   "state_machine_name": "news",
   "schedule_name": "news",
   "schedule": {
-    "enabled": false,
-    "expression": "cron(0 10 * * ? *)",
+    "enabled": true,
+    "expression": "cron(0 8 * * ? *)",
     "timezone": "America/Lima"
   },
 
