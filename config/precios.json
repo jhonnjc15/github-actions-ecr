@@ -1,16 +1,16 @@
 {
-  "id": "ventas",
-  "description": "toy scraper ventas",
-  "repository": "gsfer-udv-int/etl-scrap-poultry-news/ventas_scraper",
+  "id": "deudas",
+  "description": "toy scraper deudas",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news/deudas_scraper",
   "version": "v1.1.1",
-  "lambda_name": "ventas",
-  "state_machine_name": "ventas",
-  "schedule_name": "ventas",
+  "lambda_name": "deudas",
+  "state_machine_name": "deudas",
+  "schedule_name": "deudas",
   "schedule": {
-    "enabled": true,
+    "enabled": false,
     "expression": "cron(0 8 * * ? *)",
     "timezone": "America/Lima"
   },
 
-  "run_after_deploy": true
+  "run_after_deploy": false
 }
