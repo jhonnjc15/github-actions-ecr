@@ -1,16 +1,16 @@
 {
-  "id": "precios",
-  "description": "toy scraper precios",
-  "repository": "gsfer-udv-int/etl-scrap-poultry-news/precios",
+  "id": "ventas",
+  "description": "toy scraper ventas",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news/ventas",
   "version": "v1.1.1",
-  "lambda_name": "precios",
-  "state_machine_name": "precios",
-  "schedule_name": "precios",
+  "lambda_name": "ventas",
+  "state_machine_name": "ventas",
+  "schedule_name": "ventas",
   "schedule": {
     "enabled": false,
     "expression": "cron(0 8 * * ? *)",
     "timezone": "America/Lima"
   },
 
-  "run_after_deploy": false
+  "run_after_deploy": true
 }

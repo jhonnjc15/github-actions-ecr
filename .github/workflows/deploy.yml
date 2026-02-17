@@ -173,7 +173,7 @@ jobs:
             -backend-config="key=state/${{ github.ref_name }}/${{ steps.config.outputs.id }}/terraform.tfstate"
 
       - name: Terraform apply (Lambda + SFN +  Scheduler)
-        working-directory: infra
+        working-directory: infra 
         run: |
           terraform apply -auto-approve \
             -var="environment=${{ github.ref_name }}" \
