@@ -1,15 +1,14 @@
 {
-  "id": "news2",
-  "description": "toy scraper news",
-  "repository": "gsfer-udv-int/etl-scrap-poultry-news/news_scraper",
+  "description": "toy scraper news3",
+  "repository": "gsfer-udv-int/etl-scrap-poultry-news/news3_scraper",
   "version": "v1.1.1",
-  "lambda_name": "news2",
-  "state_machine_name": "news2",
-  "schedule_name": "news2",
+  "lambda_name": "news3",
+  "state_machine_name": "news3",
+  "schedule_name": "news3",
   "schedule": {
     "enabled": true,
     "expression": "cron(0 10 * * ? *)",
     "timezone": "America/Lima"
   },
-  "run_after_deploy": true
+  "run_after_deploy": false
 }
