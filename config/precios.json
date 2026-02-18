@@ -3,8 +3,8 @@
   "repository": "gsfer-udv-int/etl-scrap-poultry-news/news3_scraper",
   "version": "v1.1.1",
   "lambda_name": "news5",
-  "state_machine_name": "news4",
-  "schedule_name": "news4",
+  "state_machine_name": "news5",
+  "schedule_name": "news5",
   "schedule": {
     "enabled": true,
     "expression": "cron(0 10 * * ? *)",
