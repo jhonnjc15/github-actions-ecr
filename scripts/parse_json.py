@@ -8,17 +8,16 @@ data = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
 # ------------------------------------------------------------
 # REQUIRED FIELDS (multi-stack)
 # ------------------------------------------------------------
-required_fields = ("id", "repository", "version")
+required_fields = ("repository", "version")
 for field in required_fields:
     if field not in data or str(data[field]).strip() == "":
         sys.exit(f"Missing required field: {field}")
 
-stack_id_raw = str(data["id"]).strip()
 repository = str(data["repository"]).strip()
 version = str(data["version"]).strip()
 
 # name pasa a ser opcional (solo display)
-name = str(data.get("name") or stack_id_raw).strip()
+name = str(data.get("name") or repository).strip()
 
 
 def slugify(value: str) -> str:
@@ -41,13 +40,11 @@ def to_bool(v, default=False) -> bool:
         return False
     return default
 
+base = str(data.get("name") or repository).strip()
 
-stack_id = slugify(stack_id_raw)
-
-# Base names (Terraform añadirá -<env>-<stack_id>)
-lambda_name = str(data.get("lambda_name") or data.get("id")).strip()
-state_machine_name = str(data.get("state_machine_name") or data.get("id")).strip()
-schedule_name = str(data.get("schedule_name") or data.get("id")).strip()
+lambda_name = str(data.get("lambda_name") or base).strip()
+state_machine_name = str(data.get("state_machine_name") or base).strip()
+schedule_name = str(data.get("schedule_name") or base).strip()
 
 # ------------------------------------------------------------
 # Schedule (nuevo formato)
@@ -75,14 +72,11 @@ description = str(data.get("description", "")).strip()
 # ------------------------------------------------------------
 # Outputs para GitHub Actions (GITHUB_OUTPUT)
 # ------------------------------------------------------------
-print(f"id={stack_id}")                 # <- clave para backend y nombres
-print(f"name={name}")                  # <- solo display
+print(f"name={name}")
 print(f"description={description}")
 print(f"repository={repository}")
 print(f"version={version}")
 
-# Outputs para Terraform
-print(f"stack_id={stack_id}")          # <- por claridad (igual que id)
 print(f"lambda_name={lambda_name}")
 print(f"state_machine_name={state_machine_name}")
 print(f"schedule_name={schedule_name}")
@@ -90,5 +84,4 @@ print(f"schedule_expression={schedule_expression}")
 print(f"schedule_enabled={str(schedule_enabled).lower()}")
 print(f"schedule_timezone={schedule_timezone}")
 
-# Outputs para workflow
 print(f"run_after_deploy={str(run_after_deploy).lower()}")

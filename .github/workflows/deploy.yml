@@ -70,7 +70,6 @@ jobs:
 
       - name: Show parsed values
         run: |
-          echo "id: ${{ steps.config.outputs.id }}"
           echo "name: ${{ steps.config.outputs.name }}"
           echo "description: ${{ steps.config.outputs.description }}"
           echo "repository: ${{ steps.config.outputs.repository }}"
@@ -186,14 +185,13 @@ jobs:
           terraform init \
             -backend-config="bucket=backend-ga" \
             -backend-config="region=${{ secrets.AWS_REGION }}" \
-            -backend-config="key=state/${{ github.repository }}/terraform.tfstate"
+            -backend-config="key=state/${{ github.event.repository.name }}/terraform.tfstate"
 
-      - name: Terraform apply (Lambda + SFN +  Scheduler)
-        working-directory: infra 
+      - name: Terraform apply (Lambda + SFN + Scheduler)
+        working-directory: infra
         run: |
           terraform apply -auto-approve \
             -var="environment=${{ github.ref_name }}" \
-            -var="stack_id=${{ steps.config.outputs.id }}" \
             -var="aws_region=${{ secrets.AWS_REGION }}" \
             -var="aws_account_id=${{ secrets.AWS_ACCOUNT_ID }}" \
             -var="ecr_repo=${{ steps.config.outputs.repository }}" \
@@ -220,5 +218,5 @@ jobs:
         run: |
           aws stepfunctions start-execution \
             --state-machine-arn "$STATE_MACHINE_ARN" \
-            --name "postdeploy-${{ steps.config.outputs.id }}-${{ github.run_id }}" \
+            --name "postdeploy-${{ github.ref_name }}-${{ github.run_id }}" \
             --input "{\"source\":\"post_deploy\",\"env\":\"${{ github.ref_name }}\",\"github_repository\":\"${{ github.repository }}\",\"image_tag\":\"${{ steps.config.outputs.version }}\"}"

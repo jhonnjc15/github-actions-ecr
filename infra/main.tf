@@ -15,7 +15,6 @@ locals {
   # Tags
   common_tags = {
     environment = var.environment
-    stack_id    = var.stack_id
     managed_by  = "terraform"
     project     = "scraper"
 
@@ -115,7 +114,6 @@ resource "aws_scheduler_schedule" "schedule" {
     input = jsonencode({
       source   = "scheduler",
       env      = var.environment,
-      stack_id = var.stack_id
     })
   }
 }

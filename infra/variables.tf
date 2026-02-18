@@ -24,11 +24,6 @@ variable "environment" {
   description = "Deployment environment (dev|qa)"
 }
 
-variable "stack_id" {
-  type        = string
-  description = "Unique stack identifier (from config id)."
-}
-
 variable "lambda_role_name" {
   type        = string
   description = "Pre-created IAM role name for Lambda execution (from GitHub secrets)."
