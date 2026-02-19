@@ -42,17 +42,27 @@ jobs:
           BEFORE="${{ github.event.before }}"
           HEAD="${{ github.sha }}"
 
+          # GitHub usa 0000.. cuando es primer push / branch nueva (no hay commit anterior)
+          if [[ "${BEFORE:-}" == "0000000000000000000000000000000000000000" || -z "${BEFORE:-}" ]]; then
+            echo "No valid BEFORE commit in event payload (new branch/first push). Skipping range search."
+            BEFORE=""
+          fi
+
+          FILE=""
+
           # 1) Si ESTE push tocó algún config/*.json, toma el más recientemente tocado en el rango
-          FILE=$(git log -n 1 --name-only --pretty=format: "$BEFORE..$HEAD" -- config \
-            | awk '/^config\/.*\.json$/ {print; exit}')
+          if [[ -n "$BEFORE" ]]; then
+            FILE=$(git log -n 1 --name-only --pretty=format: "$BEFORE..$HEAD" -- config \
+              | awk '/^config\/.*\.json$/ {print; exit}')
+          fi
 
           # 2) Si este push NO tocó config, toma el último config tocado en la historia
-          if [ -z "${FILE:-}" ]; then
+          if [[ -z "${FILE:-}" ]]; then
             FILE=$(git log -n 1 --name-only --pretty=format: -- config \
               | awk '/^config\/.*\.json$/ {print; exit}')
           fi
 
-          if [ -z "${FILE:-}" ]; then
+          if [[ -z "${FILE:-}" ]]; then
             echo "No JSON config found under config/." >&2
             exit 1
           fi
@@ -183,7 +193,7 @@ jobs:
         working-directory: infra
         run: |
           terraform init \
-            -backend-config="bucket=backend-ga" \
+            -backend-config="bucket=backend-ga-${{ github.ref_name }}" \
             -backend-config="region=${{ secrets.AWS_REGION }}" \
             -backend-config="key=state/${{ github.event.repository.name }}/terraform.tfstate"
 
